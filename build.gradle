@@ -38,17 +38,32 @@ test {
     useJUnitPlatform()
 }
 
-jar {
+// Create a fat JAR with all dependencies
+tasks.register('fatJar', Jar) {
+    dependsOn classes
+    archiveBaseName = 'sqlparser-calcite-all'
+    archiveVersion = '1.0.0'
+    archiveClassifier = ''
+
     manifest {
-        attributes(
-            'Main-Class': 'com.sqlparser.SqlParserCli'
-        )
+        attributes 'Main-Class': 'com.sqlparser.SqlParserCli'
     }
-    // Create a fat JAR by including all dependencies
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // Include classes from main source set
+    from(sourceSets.main.output)
+
+    // Include all dependencies
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    archiveBaseName = 'sqlparser-calcite-all'
-    archiveVersion = '1.0.0'
+
+    // Exclude signature files that cause problems
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
 }
+
+// Make build task depend on fatJar
+build.dependsOn fatJar
