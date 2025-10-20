@@ -95,8 +95,9 @@ public class SqlAnalyzer {
         reset();
 
         // Configure parser for more lenient SQL parsing
+        // Use LENIENT conformance to support window functions and other advanced SQL features
         SqlParser.Config config = SqlParser.config()
-            .withConformance(SqlConformanceEnum.DEFAULT)
+            .withConformance(SqlConformanceEnum.LENIENT)
             .withCaseSensitive(false);
 
         SqlParser parser = SqlParser.create(sql, config);
@@ -149,6 +150,17 @@ public class SqlAnalyzer {
     }
 
     /**
+     * Normalizes SQL node string representation by converting to lowercase
+     * and removing Calcite-specific formatting like backticks.
+     *
+     * @param node the SQL node to normalize
+     * @return normalized string representation
+     */
+    private String normalizeNode(SqlNode node) {
+        return node.toString().toLowerCase().replace("`", "");
+    }
+
+    /**
      * Processes a SELECT statement and extracts all its components.
      * <p>
      * This method traverses the SQL Abstract Syntax Tree (AST) and extracts:
@@ -179,22 +191,21 @@ public class SqlAnalyzer {
         // Process GROUP BY
         if (select.getGroup() != null) {
             for (SqlNode groupByNode : select.getGroup()) {
-                String groupByStr = groupByNode.toString();
-                groupByColumns.add(groupByStr);
+                groupByColumns.add(normalizeNode(groupByNode));
                 extractColumnsFromNode(groupByNode);
             }
         }
 
         // Process HAVING
         if (select.getHaving() != null) {
-            havingCondition = select.getHaving().toString();
+            havingCondition = normalizeNode(select.getHaving());
             extractColumnsFromNode(select.getHaving());
         }
 
         // Process ORDER BY (if directly in SELECT)
         if (select.getOrderList() != null) {
             for (SqlNode orderByNode : select.getOrderList()) {
-                orderByColumns.add(orderByNode.toString());
+                orderByColumns.add(normalizeNode(orderByNode));
                 extractColumnsFromNode(orderByNode);
             }
         }
@@ -217,7 +228,7 @@ public class SqlAnalyzer {
     private void processOrderBy(SqlOrderBy orderBy) {
         if (orderBy.orderList != null) {
             for (SqlNode orderByNode : orderBy.orderList) {
-                orderByColumns.add(orderByNode.toString());
+                orderByColumns.add(normalizeNode(orderByNode));
                 extractColumnsFromNode(orderByNode);
             }
         }
@@ -248,7 +259,7 @@ public class SqlAnalyzer {
 
             // Process join condition
             if (join.getCondition() != null) {
-                joinConditions.add(join.toString());
+                joinConditions.add(normalizeNode(join));
                 extractColumnsFromNode(join.getCondition());
             }
         } else if (fromNode instanceof SqlBasicCall) {
@@ -257,18 +268,18 @@ public class SqlAnalyzer {
             if (call.getOperator().getName().equals("AS")) {
                 SqlNode table = call.operand(0);
                 SqlNode alias = call.operand(1);
-                String tableName = extractTableName(table);
-                String aliasName = alias.toString();
+                String tableName = extractTableName(table).toLowerCase();
+                String aliasName = alias.toString().toLowerCase();
                 tables.add(tableName + " (alias: " + aliasName + ")");
                 tableColumns.putIfAbsent(tableName, new LinkedHashSet<>());
             } else {
                 // Handle other table expressions
-                String tableName = call.toString();
+                String tableName = call.toString().toLowerCase();
                 tables.add(tableName);
                 tableColumns.putIfAbsent(tableName, new LinkedHashSet<>());
             }
         } else if (fromNode instanceof SqlIdentifier) {
-            String tableName = ((SqlIdentifier) fromNode).toString();
+            String tableName = ((SqlIdentifier) fromNode).toString().toLowerCase();
             tables.add(tableName);
             tableColumns.putIfAbsent(tableName, new LinkedHashSet<>());
         } else if (fromNode instanceof SqlSelect) {
@@ -279,15 +290,16 @@ public class SqlAnalyzer {
 
     /**
      * Extracts table name from a node.
+     * Note: Returns lowercase to normalize case-insensitive identifiers from Calcite.
      *
      * @param node the node to extract from
-     * @return the table name
+     * @return the table name in lowercase
      */
     private String extractTableName(SqlNode node) {
         if (node instanceof SqlIdentifier) {
-            return ((SqlIdentifier) node).toString();
+            return ((SqlIdentifier) node).toString().toLowerCase();
         }
-        return node.toString();
+        return node.toString().toLowerCase();
     }
 
     /**
@@ -302,33 +314,34 @@ public class SqlAnalyzer {
             if (call.getOperator().getName().equals("AS")) {
                 SqlNode expr = call.operand(0);
                 SqlNode alias = call.operand(1);
-                selectedColumns.add(expr.toString() + " AS " + alias.toString());
+                selectedColumns.add(normalizeNode(expr) + " as " + normalizeNode(alias));
                 extractColumnsFromNode(expr);
             } else {
                 // Other expressions (functions, operators, etc.)
-                selectedColumns.add(call.toString());
+                selectedColumns.add(normalizeNode(call));
                 extractColumnsFromNode(call);
             }
         } else if (selectItem instanceof SqlIdentifier) {
-            String columnStr = selectItem.toString();
+            String columnStr = normalizeNode(selectItem);
             selectedColumns.add(columnStr);
 
             // Check if it's a qualified column (table.column)
             SqlIdentifier identifier = (SqlIdentifier) selectItem;
             if (identifier.names.size() > 1) {
-                String tableName = identifier.names.get(0);
-                String columnName = identifier.names.get(1);
+                String tableName = identifier.names.get(0).toLowerCase();
+                String columnName = identifier.names.get(1).toLowerCase();
                 tableColumns.putIfAbsent(tableName, new LinkedHashSet<>());
                 tableColumns.get(tableName).add(columnName);
             }
         } else {
-            selectedColumns.add(selectItem.toString());
+            selectedColumns.add(normalizeNode(selectItem));
             extractColumnsFromNode(selectItem);
         }
     }
 
     /**
      * Recursively extracts column references from a SqlNode.
+     * Note: Normalizes identifiers to lowercase for consistency.
      *
      * @param node the node to analyze
      */
@@ -341,13 +354,13 @@ public class SqlAnalyzer {
             SqlIdentifier identifier = (SqlIdentifier) node;
             if (identifier.names.size() > 1) {
                 // Qualified column: table.column
-                String tableName = identifier.names.get(0);
-                String columnName = identifier.names.get(1);
+                String tableName = identifier.names.get(0).toLowerCase();
+                String columnName = identifier.names.get(1).toLowerCase();
                 tableColumns.putIfAbsent(tableName, new LinkedHashSet<>());
                 tableColumns.get(tableName).add(columnName);
             } else if (identifier.names.size() == 1) {
                 // Unqualified column
-                String columnName = identifier.names.get(0);
+                String columnName = identifier.names.get(0).toLowerCase();
                 tableColumns.putIfAbsent("unknown", new LinkedHashSet<>());
                 tableColumns.get("unknown").add(columnName);
             }
@@ -370,7 +383,7 @@ public class SqlAnalyzer {
      * @param whereNode the WHERE expression node
      */
     private void processWhereExpression(SqlNode whereNode) {
-        whereConditions.add(whereNode.toString());
+        whereConditions.add(normalizeNode(whereNode));
         extractColumnsFromNode(whereNode);
     }
 

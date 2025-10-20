@@ -21,30 +21,30 @@ class WindowFunctionTest {
     @DisplayName("Should parse ROW_NUMBER with PARTITION BY")
     void testRowNumberPartition() throws SqlParseException {
         String sql = "SELECT employee_id, department, " +
-                     "ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) AS rank " +
+                     "ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) AS emp_rank " +
                      "FROM employees";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(1, result.getTables().size());
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("ROW_NUMBER()")));
+                .anyMatch(col -> col.contains("row_number()")));
     }
 
     @Test
     @DisplayName("Should parse RANK and DENSE_RANK functions")
     void testRankDenseRank() throws SqlParseException {
         String sql = "SELECT product_name, " +
-                     "RANK() OVER (ORDER BY sales DESC) AS rank, " +
-                     "DENSE_RANK() OVER (ORDER BY sales DESC) AS dense_rank " +
+                     "RANK() OVER (ORDER BY sales DESC) AS sales_rank, " +
+                     "DENSE_RANK() OVER (ORDER BY sales DESC) AS sales_dense_rank " +
                      "FROM products";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("RANK()")));
+                .anyMatch(col -> col.contains("rank()")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("DENSE_RANK()")));
+                .anyMatch(col -> col.contains("dense_rank()")));
     }
 
     @Test
@@ -58,9 +58,9 @@ class WindowFunctionTest {
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("PERCENT_RANK()")));
+                .anyMatch(col -> col.contains("percent_rank()")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("CUME_DIST()")));
+                .anyMatch(col -> col.contains("cume_dist()")));
     }
 
     @Test
@@ -73,48 +73,48 @@ class WindowFunctionTest {
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("SUM(amount)")));
+                .anyMatch(col -> col.contains("sum(amount)")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("OVER")));
+                .anyMatch(col -> col.contains("over")));
     }
 
     @Test
     @DisplayName("Should parse moving averages with window frame")
     void testMovingAverages() throws SqlParseException {
-        String sql = "SELECT date, price, " +
-                     "AVG(price) OVER (ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ma_7day " +
+        String sql = "SELECT price_date, price, " +
+                     "AVG(price) OVER (ORDER BY price_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ma_7day " +
                      "FROM stock_prices";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("AVG(price)")));
+                .anyMatch(col -> col.contains("avg(price)")));
     }
 
     @Test
     @DisplayName("Should parse LAG function")
     void testLagFunction() throws SqlParseException {
-        String sql = "SELECT date, value, " +
-                     "LAG(value, 1) OVER (ORDER BY date) AS previous_value " +
+        String sql = "SELECT order_date, order_value, " +
+                     "LAG(order_value, 1) OVER (ORDER BY order_date) AS previous_value " +
                      "FROM metrics";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("LAG(value")));
+                .anyMatch(col -> col.contains("lag(order_value")));
     }
 
     @Test
     @DisplayName("Should parse LEAD function")
     void testLeadFunction() throws SqlParseException {
-        String sql = "SELECT date, value, " +
-                     "LEAD(value, 1) OVER (ORDER BY date) AS next_value " +
+        String sql = "SELECT order_date, order_value, " +
+                     "LEAD(order_value, 1) OVER (ORDER BY order_date) AS next_value " +
                      "FROM metrics";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("LEAD(value")));
+                .anyMatch(col -> col.contains("lead(order_value")));
     }
 
     @Test
@@ -126,31 +126,31 @@ class WindowFunctionTest {
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("LAG(amount")));
+                .anyMatch(col -> col.contains("lag(amount")));
     }
 
     @Test
     @DisplayName("Should parse FIRST_VALUE function")
     void testFirstValue() throws SqlParseException {
         String sql = "SELECT session_id, page, " +
-                     "FIRST_VALUE(page) OVER (PARTITION BY session_id ORDER BY timestamp) AS entry_page " +
+                     "FIRST_VALUE(page) OVER (PARTITION BY session_id ORDER BY page_timestamp) AS entry_page " +
                      "FROM page_views";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("FIRST_VALUE(page)")));
+                .anyMatch(col -> col.contains("first_value(page)")));
     }
 
     @Test
     @DisplayName("Should parse LAST_VALUE function")
     void testLastValue() throws SqlParseException {
         String sql = "SELECT session_id, page, " +
-                     "LAST_VALUE(page) OVER (PARTITION BY session_id ORDER BY timestamp ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS exit_page " +
+                     "LAST_VALUE(page) OVER (PARTITION BY session_id ORDER BY page_timestamp ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS exit_page " +
                      "FROM page_views";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("LAST_VALUE(page)")));
+                .anyMatch(col -> col.contains("last_value(page)")));
     }
 
     @Test
@@ -163,35 +163,35 @@ class WindowFunctionTest {
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("NTILE(4)")));
+                .anyMatch(col -> col.contains("ntile(4)")));
     }
 
     @Test
     @DisplayName("Should parse multiple NTILE with different buckets")
     void testMultipleNtile() throws SqlParseException {
-        String sql = "SELECT id, value, " +
-                     "NTILE(4) OVER (ORDER BY value) AS quartile, " +
-                     "NTILE(10) OVER (ORDER BY value) AS decile, " +
-                     "NTILE(100) OVER (ORDER BY value) AS percentile " +
-                     "FROM data";
+        String sql = "SELECT id, amount, " +
+                     "NTILE(4) OVER (ORDER BY amount) AS quartile, " +
+                     "NTILE(10) OVER (ORDER BY amount) AS decile, " +
+                     "NTILE(100) OVER (ORDER BY amount) AS percentile " +
+                     "FROM data_points";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(5, result.getSelectedColumns().size());
         long ntileCount = result.getSelectedColumns().stream()
-                .filter(col -> col.contains("NTILE")).count();
+                .filter(col -> col.contains("ntile")).count();
         assertEquals(3, ntileCount);
     }
 
     @Test
     @DisplayName("Should parse RANGE BETWEEN frame")
     void testRangeBetween() throws SqlParseException {
-        String sql = "SELECT date, amount, " +
-                     "SUM(amount) OVER (ORDER BY date RANGE BETWEEN INTERVAL '7 days' PRECEDING AND CURRENT ROW) AS sum_7days " +
+        String sql = "SELECT order_date, amount, " +
+                     "SUM(amount) OVER (ORDER BY order_date RANGE BETWEEN INTERVAL '7' DAY PRECEDING AND CURRENT ROW) AS sum_7days " +
                      "FROM orders";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("SUM(amount)")));
+                .anyMatch(col -> col.contains("sum(amount)")));
     }
 
     @Test
@@ -206,7 +206,7 @@ class WindowFunctionTest {
 
         assertEquals(6, result.getSelectedColumns().size());
         long sumCount = result.getSelectedColumns().stream()
-                .filter(col -> col.contains("SUM(sales)")).count();
+                .filter(col -> col.contains("sum(sales)")).count();
         assertEquals(3, sumCount);
     }
 
@@ -214,7 +214,7 @@ class WindowFunctionTest {
     @DisplayName("Should parse named window with WINDOW clause")
     void testNamedWindow() throws SqlParseException {
         String sql = "SELECT emp_id, salary, " +
-                     "ROW_NUMBER() OVER w AS rank, " +
+                     "ROW_NUMBER() OVER w AS emp_rank, " +
                      "AVG(salary) OVER w AS avg_sal " +
                      "FROM employees " +
                      "WINDOW w AS (PARTITION BY department ORDER BY salary DESC)";
@@ -226,63 +226,63 @@ class WindowFunctionTest {
     @Test
     @DisplayName("Should parse window function with complex ORDER BY")
     void testComplexOrderBy() throws SqlParseException {
-        String sql = "SELECT name, sales, returns, " +
-                     "RANK() OVER (ORDER BY sales DESC, returns ASC) AS rank " +
+        String sql = "SELECT product_name, sales, return_count, " +
+                     "RANK() OVER (ORDER BY sales DESC, return_count ASC) AS product_rank " +
                      "FROM products";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("RANK()")));
+                .anyMatch(col -> col.contains("rank()")));
     }
 
     @Test
     @DisplayName("Should parse FILTER clause with window function")
     void testFilterClause() throws SqlParseException {
-        String sql = "SELECT date, " +
-                     "SUM(amount) FILTER (WHERE type = 'sale') OVER (ORDER BY date) AS sales_total " +
+        String sql = "SELECT trans_date, " +
+                     "SUM(amount) FILTER (WHERE trans_type = 'sale') OVER (ORDER BY trans_date) AS sales_total " +
                      "FROM transactions";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("SUM(amount)")));
+                .anyMatch(col -> col.contains("sum(amount)")));
     }
 
     @Test
     @DisplayName("Should parse STDDEV window function")
     void testStddevWindow() throws SqlParseException {
-        String sql = "SELECT date, price, " +
-                     "STDDEV(price) OVER (ORDER BY date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS volatility " +
+        String sql = "SELECT price_date, price, " +
+                     "STDDEV(price) OVER (ORDER BY price_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS volatility " +
                      "FROM prices";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("STDDEV(price)")));
+                .anyMatch(col -> col.contains("stddev(price)")));
     }
 
     @Test
     @DisplayName("Should parse window function in expression")
     void testWindowInExpression() throws SqlParseException {
-        String sql = "SELECT date, value, " +
-                     "value - LAG(value) OVER (ORDER BY date) AS change " +
+        String sql = "SELECT metric_date, metric_value, " +
+                     "metric_value - LAG(metric_value) OVER (ORDER BY metric_date) AS change " +
                      "FROM metrics";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("value - LAG(value)")));
+                .anyMatch(col -> col.contains("lag(metric_value)")));
     }
 
     @Test
     @DisplayName("Should parse nested window functions in CASE")
     void testWindowInCase() throws SqlParseException {
-        String sql = "SELECT id, value, " +
-                     "CASE WHEN value > AVG(value) OVER () THEN 'Above' ELSE 'Below' END AS category " +
-                     "FROM data";
+        String sql = "SELECT id, amount, " +
+                     "CASE WHEN amount > AVG(amount) OVER () THEN 'Above' ELSE 'Below' END AS category " +
+                     "FROM data_points";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(3, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("CASE")));
+                .anyMatch(col -> col.contains("case")));
     }
 
     @Test
@@ -294,7 +294,7 @@ class WindowFunctionTest {
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("PERCENTILE_CONT")));
+                .anyMatch(col -> col.contains("percentile_cont")));
     }
 
     @Test
@@ -306,84 +306,84 @@ class WindowFunctionTest {
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("PERCENTILE_DISC")));
+                .anyMatch(col -> col.contains("percentile_disc")));
     }
 
     @Test
     @DisplayName("Should parse complex multi-window query")
     void testComplexMultiWindow() throws SqlParseException {
-        String sql = "SELECT date, region, sales, " +
-                     "SUM(sales) OVER (PARTITION BY region ORDER BY date) AS running_total, " +
-                     "AVG(sales) OVER (PARTITION BY region ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ma_7, " +
-                     "RANK() OVER (PARTITION BY region ORDER BY sales DESC) AS rank, " +
-                     "LAG(sales, 1) OVER (PARTITION BY region ORDER BY date) AS prev_sales " +
+        String sql = "SELECT sale_date, region, sales, " +
+                     "SUM(sales) OVER (PARTITION BY region ORDER BY sale_date) AS running_total, " +
+                     "AVG(sales) OVER (PARTITION BY region ORDER BY sale_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ma_7, " +
+                     "RANK() OVER (PARTITION BY region ORDER BY sales DESC) AS sales_rank, " +
+                     "LAG(sales, 1) OVER (PARTITION BY region ORDER BY sale_date) AS prev_sales " +
                      "FROM daily_sales";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(7, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("SUM(sales)")));
+                .anyMatch(col -> col.contains("sum(sales)")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("AVG(sales)")));
+                .anyMatch(col -> col.contains("avg(sales)")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("RANK()")));
+                .anyMatch(col -> col.contains("rank()")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("LAG(sales")));
+                .anyMatch(col -> col.contains("lag(sales")));
     }
 
     @Test
     @DisplayName("Should parse window function with ROWS BETWEEN")
     void testRowsBetween() throws SqlParseException {
-        String sql = "SELECT date, value, " +
-                     "AVG(value) OVER (ORDER BY date ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING) AS centered_avg " +
+        String sql = "SELECT metric_date, metric_value, " +
+                     "AVG(metric_value) OVER (ORDER BY metric_date ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING) AS centered_avg " +
                      "FROM metrics";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("AVG(value)")));
+                .anyMatch(col -> col.contains("avg(metric_value)")));
     }
 
     @Test
     @DisplayName("Should parse window function with empty OVER clause")
     void testEmptyOver() throws SqlParseException {
-        String sql = "SELECT id, value, " +
-                     "SUM(value) OVER () AS total, " +
-                     "AVG(value) OVER () AS average " +
-                     "FROM data";
+        String sql = "SELECT id, amount, " +
+                     "SUM(amount) OVER () AS total, " +
+                     "AVG(amount) OVER () AS average " +
+                     "FROM data_points";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(4, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("SUM(value)")));
+                .anyMatch(col -> col.contains("sum(amount)")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("AVG(value)")));
+                .anyMatch(col -> col.contains("avg(amount)")));
     }
 
     @Test
     @DisplayName("Should parse COUNT window function")
     void testCountWindow() throws SqlParseException {
-        String sql = "SELECT date, event, " +
-                     "COUNT(*) OVER (PARTITION BY user_id ORDER BY date) AS event_count " +
+        String sql = "SELECT event_date, event, " +
+                     "COUNT(*) OVER (PARTITION BY user_id ORDER BY event_date) AS event_count " +
                      "FROM events";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("COUNT(*)")));
+                .anyMatch(col -> col.contains("count(*)")));
     }
 
     @Test
     @DisplayName("Should parse MAX and MIN window functions")
     void testMaxMinWindow() throws SqlParseException {
-        String sql = "SELECT date, price, " +
-                     "MAX(price) OVER (ORDER BY date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS max_30d, " +
-                     "MIN(price) OVER (ORDER BY date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS min_30d " +
+        String sql = "SELECT price_date, price, " +
+                     "MAX(price) OVER (ORDER BY price_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS max_30d, " +
+                     "MIN(price) OVER (ORDER BY price_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS min_30d " +
                      "FROM prices";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("MAX(price)")));
+                .anyMatch(col -> col.contains("max(price)")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("MIN(price)")));
+                .anyMatch(col -> col.contains("min(price)")));
     }
 
     @Test
@@ -401,9 +401,9 @@ class WindowFunctionTest {
     @DisplayName("Should generate description for query with window functions")
     void testDescriptionWithWindows() throws SqlParseException {
         String sql = "SELECT employee_id, salary, " +
-                     "RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS rank " +
+                     "RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS sal_rank " +
                      "FROM employees " +
-                     "ORDER BY department, rank";
+                     "ORDER BY department, sal_rank";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertNotNull(result.getDescription());

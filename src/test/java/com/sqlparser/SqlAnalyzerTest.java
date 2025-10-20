@@ -103,7 +103,7 @@ class SqlAnalyzerTest {
 
         assertEquals(1, result.getOrderByColumns().size());
         assertTrue(result.getOrderByColumns().get(0).contains("created_at"));
-        assertTrue(result.getOrderByColumns().get(0).contains("DESC"));
+        assertTrue(result.getOrderByColumns().get(0).contains("desc"));
     }
 
     @Test
@@ -126,12 +126,12 @@ class SqlAnalyzerTest {
 
         assertEquals(2, result.getTables().size());
         assertTrue(result.getTables().get(0).contains("users"));
-        assertTrue(result.getTables().get(0).contains("alias: u"));
+        assertTrue(result.getTables().get(0).contains("(alias: u)"));
         assertTrue(result.getTables().get(1).contains("orders"));
-        assertTrue(result.getTables().get(1).contains("alias: o"));
+        assertTrue(result.getTables().get(1).contains("(alias: o)"));
 
         assertEquals(1, result.getJoinConditions().size());
-        assertTrue(result.getJoinConditions().get(0).contains("INNER JOIN"));
+        assertTrue(result.getJoinConditions().get(0).contains("inner join"));
         assertTrue(result.getJoinConditions().get(0).contains("u.id = o.user_id"));
     }
 
@@ -144,7 +144,7 @@ class SqlAnalyzerTest {
 
         assertEquals(2, result.getTables().size());
         assertEquals(1, result.getJoinConditions().size());
-        assertTrue(result.getJoinConditions().get(0).contains("LEFT JOIN"));
+        assertTrue(result.getJoinConditions().get(0).toLowerCase().contains("left join"));
     }
 
     @Test
@@ -192,24 +192,24 @@ class SqlAnalyzerTest {
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertNotNull(result.getHavingCondition());
-        assertTrue(result.getHavingCondition().contains("COUNT(*) > 5"));
+        assertTrue(result.getHavingCondition().contains("count(*) > 5"));
         assertTrue(result.getDescription().contains("groups filtered"));
     }
 
     @Test
     @DisplayName("Should parse aggregate functions")
     void testAggregateFunctions() throws SqlParseException {
-        String sql = "SELECT department, COUNT(*) as count, AVG(salary) as avg_salary, " +
+        String sql = "SELECT department, COUNT(*) as emp_count, AVG(salary) as avg_salary, " +
                      "SUM(salary) as total_salary FROM employees GROUP BY department";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
         assertEquals(4, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("COUNT(*)")));
+                .anyMatch(col -> col.contains("count(*)")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("AVG(salary)")));
+                .anyMatch(col -> col.contains("avg(salary)")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("SUM(salary)")));
+                .anyMatch(col -> col.contains("sum(salary)")));
     }
 
     @Test
@@ -220,9 +220,9 @@ class SqlAnalyzerTest {
 
         assertEquals(2, result.getSelectedColumns().size());
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("AS user_name")));
+                .anyMatch(col -> col.contains("as user_name")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("AS user_email")));
+                .anyMatch(col -> col.contains("as user_email")));
     }
 
     @Test
@@ -231,7 +231,7 @@ class SqlAnalyzerTest {
         String sql = "SELECT u.name FROM users u";
         SqlAnalysisResult result = analyzer.analyze(sql);
 
-        assertTrue(result.getTables().get(0).contains("alias: u"));
+        assertTrue(result.getTables().get(0).contains("(alias: u)"));
         assertEquals(1, result.getSelectedColumns().size());
         assertEquals("u.name", result.getSelectedColumns().get(0));
     }
@@ -304,7 +304,8 @@ class SqlAnalyzerTest {
 
         // Main query should have the where condition
         assertEquals(1, result.getWhereConditions().size());
-        assertTrue(result.getWhereConditions().get(0).contains("SELECT AVG(salary)"));
+        assertTrue(result.getWhereConditions().get(0).toLowerCase().contains("select")
+                && result.getWhereConditions().get(0).contains("avg(salary)"));
     }
 
     @Test
@@ -388,7 +389,7 @@ class SqlAnalyzerTest {
 
         assertEquals(2, result.getTables().size());
         assertEquals(1, result.getJoinConditions().size());
-        assertTrue(result.getJoinConditions().get(0).contains("RIGHT JOIN"));
+        assertTrue(result.getJoinConditions().get(0).toLowerCase().contains("right join"));
     }
 
     @Test
@@ -403,7 +404,7 @@ class SqlAnalyzerTest {
         assertTrue(result.getSelectedColumns().stream()
                 .anyMatch(col -> col.contains("price * quantity")));
         assertTrue(result.getSelectedColumns().stream()
-                .anyMatch(col -> col.contains("CONCAT")));
+                .anyMatch(col -> col.toLowerCase().contains("concat")));
     }
 
     @Test
